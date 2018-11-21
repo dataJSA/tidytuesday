@@ -1,0 +1,93 @@
+---
+title: "Tidyviz 2018-11-13"
+author: '@dataJSA'
+date: "16/11/2018"
+output: github_document
+---
+
+# Required packages
+
+```{r, echo = T,results = 'hide'}
+#if(!require(readr)) install.packages("readr")
+#if(!require(dplyr)) install.packages("dplyr")
+#if(!require(here)) install.packages("here")
+#if(!require(ggplot2)) install.packages("ggplot2")
+#if(!require(extrafont)) install.packages("extrafont")
+#if(!require(viridis)) install.pacakges("viridis")
+#if(!require(stringr)) install.packages("stringer")
+
+library(devtools)
+#if(!require(waffle)) install_github("hrbrmstr/waffle") 
+#packageVersion("waffle")
+
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(waffle)
+library(extrafont)
+library(here)
+library(viridis)
+library(stringr)
+#font_import()
+#loadfonts()
+
+```
+
+
+## Import 
+
+```{r}
+malaria_deaths<- read_csv(here("data/2018-11-13/malaria_deaths.csv"))
+malaria_deaths_age <- read_csv(here("data/2018-11-13/malaria_deaths_age.csv"))
+```
+
+## Data wrangling 
+```{r}
+malaria_deaths_age %>%
+  filter(is.na(age_group)|is.na(deaths))
+```
+
+
+```{r}
+malaria_age_total_deaths<-malaria_deaths_age %>%
+  filter(year==2016) %>% 
+  group_by(age_group) %>% 
+  summarise(total=sum(deaths)) %>% 
+  ungroup()
+
+
+malaria_waffle1<-malaria_age_total_deaths %>% 
+  mutate(total=round(total)/10000, age_group = recode(age_group, 
+                                                "Under 5" = "0-5 years old",
+                                                "5-14" = "5-14 years old",
+                                                "15-49" = "15-49 years old",
+                                                "50-69" = "50-69 years old",
+                                                "70 or older" = "70+ years old")) %>% 
+  arrange(factor(age_group,levels= c("0-5 years old","5-14 years old","15-49 years old","50-69 years old","70+ years old")))
+
+#malaria_age_total_deaths$total<-formatC(malaria_age_total_deaths$total, big.mark = ",", big.interval = 3,format="f",digits = 0)
+#malaria_waffle1$age_group<-str_c("\n",malaria_waffle1$age_group,"\n",str_c("(",str_trim(malaria_age_total_deaths$total),")\n"))
+
+malaria_waffle1
+```
+Total death in 2016
+```{r}
+sum(malaria_waffle1$total)*10000
+```
+
+# Waffle plot 
+
+```{r echo = T, results = 'hide'}
+#pal<-viridisLite::viridis(5)
+#dput(pal)
+#5
+waffle(malaria_waffle1, rows =14, glyph_size = 4.8, pad = 4, colors = c("#FDE725FF","#5DC863FF","#21908CFF","#3B528BFF","#440154FF"),
+legend_pos = "left",use_glyph ="male",xlab = "\n 3,519,187 malaria deaths worldwide                             \n") +
+  labs(title = "Malaria deaths accross age group (2016)",
+       subtitle = "Each icon represents 10,000 people",
+       caption = " Source: Our World in Data | Plot by @dataJSA")
+ggsave("TidyTueasday 2018-11-13.png")
+```
+
+
+
